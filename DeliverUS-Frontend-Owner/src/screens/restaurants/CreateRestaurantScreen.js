@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import * as ExpoImagePicker from 'expo-image-picker'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import * as yup from 'yup'
+import * as yup from 'yup' // Importar yup
 import DropDownPicker from 'react-native-dropdown-picker'
 import { create, getRestaurantCategories } from '../../api/RestaurantEndpoints'
 import InputItem from '../../components/InputItem'
@@ -11,16 +11,53 @@ import * as GlobalStyles from '../../styles/GlobalStyles'
 import restaurantLogo from '../../../assets/restaurantLogo.jpeg'
 import restaurantBackground from '../../../assets/restaurantBackground.jpeg'
 import { showMessage } from 'react-native-flash-message'
-import { ErrorMessage, Formik } from 'formik'
+import { ErrorMessage, Formik } from 'formik' // importar formik
 import TextError from '../../components/TextError'
 
 export default function CreateRestaurantScreen({ navigation }) {
   const [open, setOpen] = useState(false)
   const [restaurantCategories, setRestaurantCategories] = useState([])
-
-
   const initialRestaurantValues = { name: null, description: null, address: null, postalCode: null, url: null, shippingCosts: null, email: null, phone: null, restaurantCategoryId: null }
-
+// Definir createRestaurant function:
+  const createRestaurant = async (values) => {
+    console.log(values) // de momento solo imprime lo valores en consola
+  }
+  // Agregamos validationSchema: used by Formik to chech the validity of the fields
+  const validationSchema = yup.object().shape({
+    name: yup
+      .string()
+      .max(255, 'Name too long')
+      .required('Name is required'),
+    address: yup
+      .string()
+      .max(255, 'Address too long')
+      .required('Address is required'),
+    postalCode: yup
+      .string()
+      .max(255, 'Postal code too long')
+      .required('Postal code is required'),
+    url: yup
+      .string()
+      .nullable()
+      .url('Please enter a valid url'),
+    shippingCosts: yup
+      .number()
+      .positive('Please provide a valid shipping cost value')
+      .required('Shipping costs value is required'),
+    email: yup
+      .string()
+      .nullable()
+      .email('Please enter a valid email'),
+    phone: yup
+      .string()
+      .nullable()
+      .max(255, 'Phone too long'),
+    restaurantCategoryId: yup
+      .number()
+      .positive()
+      .integer()
+      .required('Restaurant category is required')
+  })
   useEffect(() => {
     async function fetchRestaurantCategories() {
       try {
@@ -68,11 +105,15 @@ export default function CreateRestaurantScreen({ navigation }) {
       }
     }
   }
-
   return (
     <Formik
-      initialValues={initialRestaurantValues}>
-      {({ handleSubmit, setFieldValue, values }) => (
+    // Add:
+      validationSchema={validationSchema}
+      initialValues={initialRestaurantValues}
+      // Also add: onsSubit={función que se ejecuta cuando la validación es correcta}
+      onSubmit={createRestaurant}>
+      {({ handleSubmit, setFieldValue, values }) => ( // handleSubmit:llama internamente a la validacion y al onSubmit si todo está bien
+      // setFieldValue: actualizar manualmente un campo, ej. cuando se elige una imagen o categoría del dropdown
         <ScrollView>
           <View style={{ alignItems: 'center' }}>
             <View style={{ width: '60%' }}>
@@ -123,6 +164,10 @@ export default function CreateRestaurantScreen({ navigation }) {
                 style={{ backgroundColor: GlobalStyles.brandBackground }}
                 dropDownStyle={{ backgroundColor: '#fafafa' }}
               />
+              <ErrorMessage // Se pone para que Dropdown picker gestione los errores
+                name={'restaurantCategoryId'}
+                render={msg => <TextError>{msg}</TextError>}
+              />
 
               <Pressable onPress={() =>
                 pickImage(
@@ -150,8 +195,8 @@ export default function CreateRestaurantScreen({ navigation }) {
                 <Image style={styles.image} source={values.heroImage ? { uri: values.heroImage.assets[0].uri } : restaurantBackground} />
               </Pressable>
 
-              <Pressable
-                onPress={() => console.log('Submit pressed')}
+              <Pressable // Modificar para aplicar handleSubmit: validar todos los campos con validationSchema y, si todo está ok, llama a onSubmit, si hay errores los muesta en pantalla
+                onPress={handleSubmit}
                 style={({ pressed }) => [
                   {
                     backgroundColor: pressed
