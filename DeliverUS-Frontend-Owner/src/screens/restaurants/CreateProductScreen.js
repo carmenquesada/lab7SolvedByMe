@@ -13,11 +13,55 @@ import * as yup from 'yup'
 import { ErrorMessage, Formik } from 'formik'
 import TextError from '../../components/TextError'
 
-export default function CreateProductScreen({ navigation, route }) {
+export default function CreateProductScreen ({ navigation, route }) {
   const [open, setOpen] = useState(false)
   const [productCategories, setProductCategories] = useState([])
-
-  const initialProductValues = { name: null, description: null, price: null, order: null, restaurantId: route.params.id, productCategoryId: null, availability: true }
+  const [backendErrors, setBackendErrors] = useState()
+  // 3. Crear la funcion createProduct
+  const createProduct = async (values) => {
+    setBackendErrors([])
+    try {
+      const restaurantId = route.params.id
+      const createdProduct = await create(values)
+      showMessage({
+        message: `Product ${createdProduct.name} succesfully created`,
+        type: 'success',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+      navigation.navigate('RestaurantDetailScreen', { id: restaurantId, dirty: true })
+    } catch (error) {
+      console.log(error)
+      setBackendErrors(error.errors)
+    }
+  }
+  const initialProductValues = { name: null, description: null, price: null, order: null, restaurantId: route.params.id, productCategoryId: null, availability: false }
+  // 1. Create validationSchema using yup
+  const validationSchema = yup.object().shape({
+    name: yup
+      .string()
+      .max(255, 'Name too long')
+      .required('Name is required'),
+    description: yup
+      .string()
+      .max(255, 'Description too long')
+      .required('Description is required'),
+    price: yup
+      .number()
+      .positive('Price must be positive')
+      .required('Price is required'),
+    order: yup
+      .number()
+      .integer('Order must be an integer')
+      .required('Order is required'),
+    productCategoryId: yup
+      .number()
+      .positive()
+      .integer()
+      .required('Product category is required'),
+    availability: yup
+      .boolean()
+  })
 
   useEffect(() => {
     async function fetchProductCategories() {
@@ -54,11 +98,11 @@ export default function CreateProductScreen({ navigation, route }) {
       }
     }
   }
-
-
-  return (
+  return ( // 2. Configurar formik con el validationSchema y el onSubmit
     <Formik
-      initialValues={initialProductValues}>
+      initialValues={initialProductValues}
+      validationSchema={validationSchema}
+      onSubmit={createProduct}>
       {({ handleSubmit, setFieldValue, values }) => (
         <ScrollView>
           <View style={{ alignItems: 'center' }}>
@@ -120,7 +164,11 @@ export default function CreateProductScreen({ navigation, route }) {
                 <TextRegular>Product image: </TextRegular>
                 <Image style={styles.image} source={values.image ? { uri: values.image.assets[0].uri } : defaultProductImage} />
               </Pressable>
-
+              {backendErrors && // 4. Mostrar los errores del backend
+                backendErrors.map((error, index) => (
+                  <TextError key={index}>{error.msg}</TextError>
+                ))
+              }
               <Pressable
                 onPress={ () => console.log('Button pressed') }
                 style={({ pressed }) => [
