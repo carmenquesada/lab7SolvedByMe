@@ -4,7 +4,7 @@ import * as ExpoImagePicker from 'expo-image-picker'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import * as yup from 'yup' // Importar yup
 import DropDownPicker from 'react-native-dropdown-picker'
-import { create, getRestaurantCategories } from '../../api/RestaurantEndpoints'
+import { create, getRestaurantCategories } from '../../api/RestaurantEndpoints' // Importar create
 import InputItem from '../../components/InputItem'
 import TextRegular from '../../components/TextRegular'
 import * as GlobalStyles from '../../styles/GlobalStyles'
@@ -18,9 +18,24 @@ export default function CreateRestaurantScreen({ navigation }) {
   const [open, setOpen] = useState(false)
   const [restaurantCategories, setRestaurantCategories] = useState([])
   const initialRestaurantValues = { name: null, description: null, address: null, postalCode: null, url: null, shippingCosts: null, email: null, phone: null, restaurantCategoryId: null }
-// Definir createRestaurant function:
+  // Manejar errores del backend:
+  const [backendErrors, setBackendErrors] = useState()
+  // Modificar createRestaurant function:
   const createRestaurant = async (values) => {
-    console.log(values) // de momento solo imprime lo valores en consola
+    setBackendErrors([])
+    try {
+      const createdRestaurant = await create(values)
+      showMessage({
+        message: `Restaurant ${createdRestaurant.name} succesfully created`,
+        type: 'success',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+      navigation.navigate('RestaurantsScreen', { dirty: true })
+    } catch (error) {
+      console.log(error)
+      setBackendErrors(error.errors)
+    }
   }
   // Agregamos validationSchema: used by Formik to chech the validity of the fields
   const validationSchema = yup.object().shape({
@@ -194,7 +209,9 @@ export default function CreateRestaurantScreen({ navigation }) {
                 <TextRegular>Hero image: </TextRegular>
                 <Image style={styles.image} source={values.heroImage ? { uri: values.heroImage.assets[0].uri } : restaurantBackground} />
               </Pressable>
-
+              {backendErrors && // Bloque de errores de backend
+                backendErrors.map((error, index) => <TextError key={index}>{error.msg}</TextError>)
+              }
               <Pressable // Modificar para aplicar handleSubmit: validar todos los campos con validationSchema y, si todo está ok, llama a onSubmit, si hay errores los muesta en pantalla
                 onPress={handleSubmit}
                 style={({ pressed }) => [

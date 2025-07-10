@@ -17,7 +17,7 @@ export default function RestaurantsScreen({ navigation, route }) {
   const { loggedInUser } = useContext(AuthorizationContext)
 
   useEffect(() => {
-    async function fetchRestaurants() {
+    async function fetchRestaurants () {
       try {
         const fetchedRestaurants = await getAll()
         setRestaurants(fetchedRestaurants)
@@ -35,7 +35,7 @@ export default function RestaurantsScreen({ navigation, route }) {
     } else {
       setRestaurants(null)
     }
-  }, [loggedInUser])
+  }, [loggedInUser, route]) // Añadimos route
 
   const renderRestaurant = ({ item }) => {
     return (
